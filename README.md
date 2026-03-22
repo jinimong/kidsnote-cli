@@ -10,7 +10,7 @@
 
 1. **설치**: 터미널에서 아래 명령어를 실행하세요.
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/jinimong/kidsnote-cli/main/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/jinimong/kidsnote-cli/refs/heads/main/install.sh | bash
    ```
 2. **로그인**: 아이디와 비밀번호를 입력하여 인증을 완료하세요.
    ```bash
