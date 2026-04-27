@@ -54,6 +54,53 @@ describe('notice command', () => {
     await rm(TEST_CACHE_DIR, { recursive: true, force: true });
   });
 
+  it('passes classId to fetchNotices when available', async () => {
+    const today = todayKST();
+    const created = toISOInKST(today);
+    mockResolveAuth.mockResolvedValue({ cookie: 'c', childId: 42, centerId: 100, classId: 958174 });
+    mockFetchNotices.mockResolvedValue([
+      { id: 1, created, title: 'Class Notice', cls: 958174, is_center_notice: false },
+    ]);
+
+    const out = captureStdout();
+    try {
+      await handleNotice({ today: true });
+    } finally {
+      out.restore();
+    }
+
+    expect(mockFetchNotices).toHaveBeenCalledWith({
+      cookie: 'c',
+      centerId: 100,
+      classId: 958174,
+    });
+
+    const parsed = JSON.parse(out.getOutput());
+    expect(parsed[0].items[0].title).toBe('Class Notice');
+  });
+
+  it('works without classId (backward compatible)', async () => {
+    const today = todayKST();
+    const created = toISOInKST(today);
+    mockResolveAuth.mockResolvedValue({ cookie: 'c', childId: 42, centerId: 100 });
+    mockFetchNotices.mockResolvedValue([
+      { id: 1, created, title: 'Center Notice', cls: null, is_center_notice: true },
+    ]);
+
+    const out = captureStdout();
+    try {
+      await handleNotice({ today: true });
+    } finally {
+      out.restore();
+    }
+
+    expect(mockFetchNotices).toHaveBeenCalledWith({
+      cookie: 'c',
+      centerId: 100,
+      classId: undefined,
+    });
+  });
+
   it('fetches notices for --today and outputs JSON', async () => {
     const today = todayKST();
     const created = toISOInKST(today);

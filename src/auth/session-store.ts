@@ -19,6 +19,7 @@ export interface StoredSession {
   cookie: string;
   childId?: number;
   centerId?: number;
+  classId?: number;
   savedAt: number;
   expiresAt?: number;
 }

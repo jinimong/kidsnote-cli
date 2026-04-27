@@ -7,6 +7,7 @@ export interface ResolvedAuth {
   cookie: string;
   childId: number;
   centerId?: number;
+  classId?: number;
 }
 
 export async function resolveAuth(opts?: {
@@ -20,6 +21,7 @@ export async function resolveAuth(opts?: {
 
   let childId = authResult.childId;
   let centerId: number | undefined;
+  let classId: number | undefined;
 
   const session = await loadSession();
   if (!childId) {
@@ -28,12 +30,16 @@ export async function resolveAuth(opts?: {
   if (!centerId) {
     centerId = session?.centerId;
   }
+  if (!classId) {
+    classId = session?.classId;
+  }
 
   if (!childId || !centerId) {
     const discovered = await discoverIdsViaApi(authResult.cookie);
     if (discovered) {
       if (!childId) childId = discovered.childId;
       if (!centerId) centerId = discovered.centerId;
+      if (!classId) classId = discovered.classId;
     }
   }
 
@@ -54,8 +60,9 @@ export async function resolveAuth(opts?: {
       cookie: authResult.cookie,
       childId,
       centerId,
+      classId,
     });
   }
 
-  return { cookie: authResult.cookie, childId, centerId };
+  return { cookie: authResult.cookie, childId, centerId, classId };
 }

@@ -78,6 +78,7 @@ export async function handleNotice(opts: NoticeOptions): Promise<void> {
     const notices = await fetchNotices({
       cookie: auth.cookie,
       centerId: auth.centerId,
+      classId: auth.classId,
     });
 
     const filtered = filterNoticesByDateRange(notices, fetchFrom, fetchTo);

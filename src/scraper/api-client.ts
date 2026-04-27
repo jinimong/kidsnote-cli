@@ -16,11 +16,13 @@ export interface FetchReportsOptions {
 export interface FetchNoticesOptions {
   cookie: string;
   centerId: number;
+  classId?: number;
 }
 
 interface Enrollment {
   child_id: number;
   center_id: number;
+  cls?: number;
 }
 
 interface ChildWithEnrollment {
@@ -35,6 +37,7 @@ interface ChildrenResponse {
 export interface DiscoveredIds {
   childId: number;
   centerId?: number;
+  classId?: number;
 }
 
 async function fetchWithCookie<T>(url: string, cookie: string): Promise<T> {
@@ -70,6 +73,7 @@ export async function discoverIdsViaApi(cookie: string): Promise<DiscoveredIds |
       return {
         childId: child.id,
         centerId: enrollment?.center_id,
+        classId: enrollment?.cls,
       };
     }
   } catch (e) {
@@ -121,6 +125,9 @@ export async function fetchNotices(opts: FetchNoticesOptions): Promise<NoticeIte
   const url = new URL(`/api/v1/centers/${opts.centerId}/notices/`, BASE_URL);
   url.searchParams.set('page_size', String(DEFAULT_PAGE_SIZE));
   url.searchParams.set('tz', 'Asia/Seoul');
+  if (opts.classId) {
+    url.searchParams.set('cls', String(opts.classId));
+  }
 
   const allResults: NoticeItem[] = [];
   let cursor: string | null = null;

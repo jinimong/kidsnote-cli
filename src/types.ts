@@ -88,6 +88,10 @@ export interface NoticeItem {
   title: string;
   content: string;
   author_name: string;
+  center?: number;
+  cls?: number | null;
+  class_name?: string;
+  is_center_notice?: boolean;
   attached_images: unknown[];
   attached_files: unknown[];
 }

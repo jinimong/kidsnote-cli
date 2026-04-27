@@ -7,6 +7,7 @@ export interface AuthResult {
   cookie: string;
   childId?: number;
   centerId?: number;
+  classId?: number;
   fromCache: boolean;
 }
 
@@ -32,6 +33,7 @@ export async function authenticate(opts?: {
         cookie: existing.cookie,
         childId: existing.childId,
         centerId: existing.centerId,
+        classId: existing.classId,
         fromCache: true,
       };
     }

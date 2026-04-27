@@ -167,6 +167,27 @@ describe('fetchNotices', () => {
     const calledUrl = new URL(mockFetch.mock.calls[0][0]);
     expect(calledUrl.pathname).toBe('/api/v1/centers/85962/notices/');
     expect(calledUrl.searchParams.get('tz')).toBe('Asia/Seoul');
+    expect(calledUrl.searchParams.has('cls')).toBe(false);
+  });
+
+  it('appends cls query param when classId is provided', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({
+        count: 2,
+        next: null,
+        previous: null,
+        results: [
+          { id: 10, title: 'Center Notice', is_center_notice: true, cls: null },
+          { id: 11, title: 'Class Notice', is_center_notice: false, cls: 958174 },
+        ],
+      }),
+    );
+
+    const results = await fetchNotices({ cookie: 'c', centerId: 85962, classId: 958174 });
+    expect(results).toHaveLength(2);
+
+    const calledUrl = new URL(mockFetch.mock.calls[0][0]);
+    expect(calledUrl.searchParams.get('cls')).toBe('958174');
   });
 });
 
@@ -188,6 +209,28 @@ describe('discoverIdsViaApi', () => {
 
     const calledUrl = new URL(mockFetch.mock.calls[0][0]);
     expect(calledUrl.pathname).toBe('/api/v1/me/children/');
+  });
+
+  it('returns classId from enrollment cls field', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({
+        results: [{ id: 123, enrollment: [{ child_id: 123, center_id: 456, cls: 958174 }] }],
+      }),
+    );
+
+    const ids = await discoverIdsViaApi('session=abc');
+    expect(ids).toEqual({ childId: 123, centerId: 456, classId: 958174 });
+  });
+
+  it('returns classId undefined when enrollment has no cls', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({
+        results: [{ id: 123, enrollment: [{ child_id: 123, center_id: 456 }] }],
+      }),
+    );
+
+    const ids = await discoverIdsViaApi('session=abc');
+    expect(ids?.classId).toBeUndefined();
   });
 
   it('returns null when no children found', async () => {
