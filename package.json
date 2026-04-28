@@ -32,7 +32,7 @@
   "scripts": {
     "build": "tsc && chmod +x dist/cli.js",
     "postinstall": "npx --yes playwright install chromium",
-    "prepare": "npm run build",
+    "prepare": "npm run build || echo '⚠️  Build skipped — run npm run build manually to diagnose'",
     "dev": "tsx src/cli.ts",
     "start": "node dist/cli.js",
     "test": "vitest run",

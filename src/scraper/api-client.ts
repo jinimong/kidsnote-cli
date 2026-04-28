@@ -22,7 +22,7 @@ export interface FetchNoticesOptions {
 interface Enrollment {
   child_id: number;
   center_id: number;
-  cls?: number;
+  belong_to_class?: number;
 }
 
 interface ChildWithEnrollment {
@@ -73,7 +73,7 @@ export async function discoverIdsViaApi(cookie: string): Promise<DiscoveredIds |
       return {
         childId: child.id,
         centerId: enrollment?.center_id,
-        classId: enrollment?.cls,
+        classId: enrollment?.belong_to_class,
       };
     }
   } catch (e) {

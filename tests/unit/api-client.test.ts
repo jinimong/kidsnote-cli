@@ -211,10 +211,12 @@ describe('discoverIdsViaApi', () => {
     expect(calledUrl.pathname).toBe('/api/v1/me/children/');
   });
 
-  it('returns classId from enrollment cls field', async () => {
+  it('returns classId from enrollment belong_to_class field', async () => {
     mockFetch.mockResolvedValue(
       jsonResponse({
-        results: [{ id: 123, enrollment: [{ child_id: 123, center_id: 456, cls: 958174 }] }],
+        results: [
+          { id: 123, enrollment: [{ child_id: 123, center_id: 456, belong_to_class: 958174 }] },
+        ],
       }),
     );
 
@@ -222,7 +224,7 @@ describe('discoverIdsViaApi', () => {
     expect(ids).toEqual({ childId: 123, centerId: 456, classId: 958174 });
   });
 
-  it('returns classId undefined when enrollment has no cls', async () => {
+  it('returns classId undefined when enrollment has no belong_to_class', async () => {
     mockFetch.mockResolvedValue(
       jsonResponse({
         results: [{ id: 123, enrollment: [{ child_id: 123, center_id: 456 }] }],
@@ -231,6 +233,17 @@ describe('discoverIdsViaApi', () => {
 
     const ids = await discoverIdsViaApi('session=abc');
     expect(ids?.classId).toBeUndefined();
+  });
+
+  it('returns classId undefined when enrollment is missing', async () => {
+    mockFetch.mockResolvedValue(
+      jsonResponse({
+        results: [{ id: 123 }],
+      }),
+    );
+
+    const ids = await discoverIdsViaApi('session=abc');
+    expect(ids).toEqual({ childId: 123, centerId: undefined, classId: undefined });
   });
 
   it('returns null when no children found', async () => {
