@@ -158,9 +158,9 @@ export async function loadSession(): Promise<StoredSession | null> {
   }
 
   if (session.expiresAt && Date.now() >= session.expiresAt) {
-    process.stderr.write('[정보] 세션이 만료되었습니다. 재로그인이 필요합니다.\n');
-    await rm(filePath, { force: true });
-    return null;
+    process.stderr.write(
+      '[정보] 저장된 세션의 로컬 만료 시각이 지났습니다. 서버 응답으로 실제 유효성을 확인합니다.\n',
+    );
   }
 
   return session;

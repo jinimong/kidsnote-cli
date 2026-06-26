@@ -8,6 +8,11 @@ vi.mock('../../src/auth/session-store.js', () => ({
   deleteSession: (...args: unknown[]) => mockDeleteSession(...args),
 }));
 
+const mockAuthenticate = vi.fn();
+vi.mock('../../src/auth/authenticate.js', () => ({
+  authenticate: (...args: unknown[]) => mockAuthenticate(...args),
+}));
+
 const { fetchReports, fetchNotices, discoverIdsViaApi } = await import(
   '../../src/scraper/api-client.js'
 );
@@ -26,6 +31,7 @@ describe('fetchReports', () => {
   beforeEach(() => {
     mockFetch.mockReset();
     mockDeleteSession.mockReset().mockResolvedValue(true);
+    mockAuthenticate.mockReset();
   });
 
   it('fetches reports with correct URL params', async () => {
@@ -111,6 +117,65 @@ describe('fetchReports', () => {
     expect(mockDeleteSession).toHaveBeenCalledTimes(1);
   });
 
+  it('re-authenticates once and retries the original request after 401', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse(null, 401)).mockResolvedValueOnce(
+      jsonResponse({
+        count: 1,
+        next: null,
+        previous: null,
+        results: [{ id: 7, date_written: '2026-03-14' }],
+      }),
+    );
+    mockAuthenticate.mockResolvedValue({ cookie: 'fresh=session', fromCache: false });
+
+    const results = await fetchReports({ cookie: 'expired', childId: 1 });
+
+    expect(results).toHaveLength(1);
+    expect(mockAuthenticate).toHaveBeenCalledTimes(1);
+    expect(mockAuthenticate).toHaveBeenCalledWith({ forceRefresh: true });
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockFetch.mock.calls[0][1].headers.Cookie).toBe('expired');
+    expect(mockFetch.mock.calls[1][1].headers.Cookie).toBe('fresh=session');
+    expect(mockDeleteSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws auth expiry after one retry when 401 persists', async () => {
+    mockFetch.mockResolvedValue(jsonResponse(null, 401));
+    mockAuthenticate.mockResolvedValue({ cookie: 'fresh=session', fromCache: false });
+
+    await expect(fetchReports({ cookie: 'expired', childId: 1 })).rejects.toThrow(
+      '인증이 만료되었습니다',
+    );
+    expect(mockAuthenticate).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockDeleteSession).toHaveBeenCalledTimes(2);
+  });
+
+  it('throws auth expiry when re-authentication itself fails', async () => {
+    mockFetch.mockResolvedValue(jsonResponse(null, 403));
+    mockAuthenticate.mockRejectedValue(new Error('missing password'));
+
+    await expect(fetchReports({ cookie: 'expired', childId: 1 })).rejects.toThrow(
+      '인증이 만료되었습니다',
+    );
+    expect(mockAuthenticate).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockDeleteSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry forever on non-auth errors after re-authentication', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse(null, 401)).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+    } as Response);
+    mockAuthenticate.mockResolvedValue({ cookie: 'fresh=session', fromCache: false });
+
+    await expect(fetchReports({ cookie: 'expired', childId: 1 })).rejects.toThrow('HTTP 500');
+    expect(mockAuthenticate).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
   it('throws on non-ok response', async () => {
     mockFetch.mockResolvedValue({
       ok: false,
@@ -149,6 +214,7 @@ describe('fetchNotices', () => {
   beforeEach(() => {
     mockFetch.mockReset();
     mockDeleteSession.mockReset().mockResolvedValue(true);
+    mockAuthenticate.mockReset();
   });
 
   it('fetches notices with correct URL using centerId', async () => {
@@ -195,6 +261,7 @@ describe('discoverIdsViaApi', () => {
   beforeEach(() => {
     mockFetch.mockReset();
     mockDeleteSession.mockReset().mockResolvedValue(true);
+    mockAuthenticate.mockReset();
   });
 
   it('returns childId and centerId from children endpoint', async () => {

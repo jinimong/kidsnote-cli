@@ -92,18 +92,20 @@ describe('session operations', () => {
     expect(session?.expiresAt).toBe(futureMs);
   });
 
-  it('returns null and deletes session when expiresAt is in the past', async () => {
+  it('keeps the session when expiresAt is in the past and defers validity to the server', async () => {
     const pastMs = Date.now() - 1000;
-    await saveSession({ cookie: 'expired', expiresAt: pastMs });
+    await saveSession({ cookie: 'expired-locally', expiresAt: pastMs });
     const session = await loadSession();
-    expect(session).toBeNull();
+    expect(session).not.toBeNull();
+    expect(session?.cookie).toBe('expired-locally');
+    expect(session?.expiresAt).toBe(pastMs);
 
     const filePath = join(TEST_DATA_DIR, 'session.enc');
     const exists = await readFile(filePath).then(
       () => true,
       () => false,
     );
-    expect(exists).toBe(false);
+    expect(exists).toBe(true);
   });
 
   it('returns null for corrupted session files', async () => {

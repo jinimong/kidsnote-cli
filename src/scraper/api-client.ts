@@ -1,3 +1,4 @@
+import { authenticate } from '../auth/authenticate.js';
 import { deleteSession } from '../auth/session-store.js';
 import { getProvider } from '../plugins/loader.js';
 import type { NoticeItem, NoticesApiResponse, ReportItem, ReportsApiResponse } from '../types.js';
@@ -40,12 +41,30 @@ export interface DiscoveredIds {
   classId?: number;
 }
 
-async function fetchWithCookie<T>(url: string, cookie: string): Promise<T> {
+async function fetchWithCookie<T>(
+  url: string,
+  cookie: string,
+  opts?: { allowReauth?: boolean },
+): Promise<T> {
   const res = await fetch(url, {
     headers: { Cookie: cookie },
   });
 
   if (res.status === 401 || res.status === 403) {
+    if (opts?.allowReauth !== false) {
+      await deleteSession();
+
+      let refreshedCookie: string;
+      try {
+        const refreshed = await authenticate({ forceRefresh: true });
+        refreshedCookie = refreshed.cookie;
+      } catch {
+        throw new Error(`인증이 만료되었습니다 (HTTP ${res.status}). 재로그인이 필요합니다.`);
+      }
+
+      return await fetchWithCookie<T>(url, refreshedCookie, { allowReauth: false });
+    }
+
     await deleteSession();
     throw new Error(`인증이 만료되었습니다 (HTTP ${res.status}). 재로그인이 필요합니다.`);
   }
